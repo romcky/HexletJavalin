@@ -2,18 +2,30 @@ package org.example.hexlet;
 
 import io.javalin.Javalin;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.rendering.template.JavalinJte;
+import static io.javalin.rendering.template.TemplateUtil.model;
+
 
 public class HelloWorld {
+    public static UserBase userBase = new UserBase();
 
     public static Javalin getUsers() {
-        Javalin app = Javalin.create();
-        app.get("/users/{id}/post/{postId}", ctx -> {
+        Javalin app = Javalin.create(javalinConfig -> {
+            javalinConfig.fileRenderer(new JavalinJte());
+        });
+        app.get("/users", ctx -> {
+            ctx.render("users.jte", model("userBase", userBase));
+        });
+
+        app.get("/users/{id}", ctx -> {
             try {
                 int id = ctx.pathParamAsClass("id", Integer.class).get();
-                int postId = ctx.pathParamAsClass("postId", Integer.class).get();
-                ctx.result(String.format("id = %d, postId = %d", id, postId));
+                User user = userBase.getUserById(id).orElseThrow(
+                        () -> new NotFoundResponse("No such user id!")
+                );
+                ctx.render("user.jte", model("user", user));
             } catch (Exception exception) {
-                ctx.result("Wrong id or postId!");
+                throw new NotFoundResponse("Wrong id path!");
             }
         });
         return app;
